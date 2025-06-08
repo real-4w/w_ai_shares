@@ -1,15 +1,9 @@
-import yfinance as yf
-import tkinter as tk
+import yfinance as yf, tkinter as tk, matplotlib.pyplot as plt, pandas as pd
+import time, threading,json, os, logging, yaml
 from tkinter import scrolledtext, messagebox
 from datetime import datetime
-import time
-import threading
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import pandas as pd
-import json
-import os
-import logging
+
 
 class StockApp:
     def __init__(self, root):
