@@ -1,0 +1,2 @@
+Ticker,Error retrieving data for BHP.AX
+BHP.AX,"""None of [Index(['Strong Buy', 'Buy', 'Hold', 'Sell', 'Strong Sell'], dtype='object')] are in the [columns]"""
