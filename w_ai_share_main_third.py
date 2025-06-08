@@ -66,14 +66,15 @@ class StockApp:
 
         # Display daily recommendations on startup
         self.display_daily_recommendations()
-
+    
     def load_ticker_stocks(self):
-        """Load ticker stocks from a JSON file or use defaults."""
+        """Load ticker stocks from a YAML file or use defaults."""
         default_tickers = ['AAPL', 'MSFT', 'BHP.AX', 'CBA.AX', 'AIA.NZ', 'FPH.NZ']
-        if os.path.exists('ticker_stocks.json'):
+        if os.path.exists('ticker_stocks.yaml'):
             try:
-                with open('ticker_stocks.json', 'r') as f:
-                    tickers = json.load(f)
+                with open('ticker_stocks.yaml', 'r') as f:
+                    data = yaml.safe_load(f)
+                    tickers = data.get('tickers', default_tickers) if data else default_tickers
                     logging.info(f"Loaded ticker stocks: {tickers}")
                     return tickers
             except Exception as e:
@@ -81,10 +82,10 @@ class StockApp:
         return default_tickers
 
     def save_ticker_stocks(self):
-        """Save ticker stocks to a JSON file."""
+        """Save ticker stocks to a YAML file."""
         try:
-            with open('ticker_stocks.json', 'w') as f:
-                json.dump(self.ticker_stocks, f)
+            with open('ticker_stocks.yaml', 'w') as f:
+                yaml.safe_dump({'tickers': self.ticker_stocks}, f)
             logging.info(f"Saved ticker stocks: {self.ticker_stocks}")
         except Exception as e:
             logging.error(f"Failed to save ticker stocks: {e}")
@@ -96,7 +97,6 @@ class StockApp:
             messagebox.showerror("Error", "Ticker cannot be empty.")
             return
 
-        # Validate ticker by attempting to fetch data
         try:
             stock = yf.Ticker(ticker)
             info = stock.info
@@ -108,7 +108,6 @@ class StockApp:
             messagebox.showerror("Error", f"Failed to validate {ticker}: {str(e)}")
             return
 
-        # Check for duplicates
         if ticker not in self.ticker_stocks:
             self.ticker_stocks.append(ticker)
             self.save_ticker_stocks()
@@ -132,7 +131,7 @@ class StockApp:
             messagebox.showinfo("Success", f"{ticker} removed from ticker tape.")
         else:
             logging.info(f"Attempted to remove non-existent ticker: {ticker}. Current tickers: {self.ticker_stocks}")
-            messagebox.showwarning("Warning", f"{ticker} not found in ticker tape.")
+        messagebox.showwarning("Warning", f"{ticker} not found in ticker tape.")
 
     def update_ticker_tape(self):
         """Update the ticker tape with stock prices and percentage changes."""
