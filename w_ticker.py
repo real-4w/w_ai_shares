@@ -11,7 +11,9 @@ class TickerTape:
     def __init__(self, root):
         self.root = root
         self.root.title("Stock Market Ticker")
-        self.root.geometry("1920x50+0+0")  # Wide window at top
+        # Set width to full screen width
+        screen_width = self.root.winfo_screenwidth()
+        self.root.geometry(f"{screen_width}x50+0+0")  # Span full screen width
         self.root.attributes('-topmost', True)  # Keep on top
         self.root.overrideredirect(True)  # Remove window borders
         self.root.configure(bg='black')
@@ -50,7 +52,7 @@ class TickerTape:
         # Animation variables
         self.text = ""
         self.text_width = 0
-        self.x_pos = 1920  # Start off-screen
+        self.x_pos = screen_width  # Start off-screen at screen width
         self.running = True
 
         # Start data fetching and animation
@@ -102,7 +104,7 @@ class TickerTape:
         self.x_pos -= 2  # Scroll speed
 
         if self.x_pos < -self.text_width:
-            self.x_pos = 1920  # Reset to right
+            self.x_pos = self.root.winfo_screenwidth()  # Reset to screen width
 
         # Update label position
         self.label.place(x=self.x_pos, y=0, width=self.text_width)

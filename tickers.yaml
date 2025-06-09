@@ -2,4 +2,6 @@ tickers:
 - ^GSPC
 - ^AXJO
 - ^NZ50
-
+- DGL.NZX
+- AAPL
+- DGL
