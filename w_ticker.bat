@@ -1,0 +1,1 @@
+& C:/Users/willem.vandersteen/AppData/Local/Programs/Python/Python312/python.exe "c:/Python Scripts/w_ai_shares/w_ticker.py"
