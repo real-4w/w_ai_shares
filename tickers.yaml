@@ -3,6 +3,9 @@ tickers:
 - ^AXJO
 - ^NZ50
 - NVDA
+- ATM.NZ
+- ANZ.NZ
+- AIA.NZ
 - DGL.NZ
 - IFT.NZ
 - TWR.NZ
