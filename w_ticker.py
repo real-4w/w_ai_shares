@@ -44,6 +44,7 @@ class TickerTape:
         self.menu.add_command(label="Remove Ticker", command=self.remove_ticker)
         self.menu.add_separator()
         self.menu.add_command(label="Exit", command=self.exit_app)
+        self.menu.add_command(label="Pause/Resume", command=self.toggle_pause)
 
         # Animation variables
         self.ticker_data = []
@@ -51,6 +52,7 @@ class TickerTape:
         self.total_width = 0
         self.x_pos = screen_width  # Start off-screen
         self.running = True
+        self.paused = False
 
         # Start data fetching and animation
         self.fetch_thread = threading.Thread(target=self.fetch_data, daemon=True)
@@ -137,9 +139,13 @@ class TickerTape:
 
         self.total_width = x_offset
 
+    def toggle_pause(self):
+        """Toggle pause/resume of the ticker tape."""
+        self.paused = not self.paused
+
     def animate(self):
         """Animate scrolling labels."""
-        if not self.ticker_data:
+        if not self.ticker_data or self.paused:
             self.root.after(100, self.animate)
             return
 
