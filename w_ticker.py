@@ -121,7 +121,10 @@ class TickerTape:
 
             # Calculate width
             bbox = self.canvas.bbox(label_id)
-            width = bbox[2] - bbox[0]
+            if bbox:
+                width = bbox[2] - bbox[0]
+            else:
+                width = 0
             x_offset += width + 40  # Space between tickers
 
             # Add separator
@@ -135,7 +138,11 @@ class TickerTape:
             )
             self.labels.append(sep_id)
             bbox = self.canvas.bbox(sep_id)
-            x_offset += (bbox[2] - bbox[0]) + 40
+            if bbox:
+                sep_width = bbox[2] - bbox[0]
+            else:
+                sep_width = 0
+            x_offset += sep_width + 40
 
         self.total_width = x_offset
 
