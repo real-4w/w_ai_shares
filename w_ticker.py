@@ -43,8 +43,8 @@ class TickerTape:
         self.menu.add_command(label="Add Ticker", command=self.add_ticker)
         self.menu.add_command(label="Remove Ticker", command=self.remove_ticker)
         self.menu.add_separator()
-        self.menu.add_command(label="Exit", command=self.exit_app)
         self.menu.add_command(label="Pause/Resume", command=self.toggle_pause)
+        self.menu.add_command(label="Exit", command=self.exit_app)
 
         # Animation variables
         self.ticker_data = []
