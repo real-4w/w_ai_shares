@@ -40,8 +40,9 @@ class TickerTape:
         )
         self.canvas.pack(fill='both', expand=True)
 
-        # Bind right-click for context menu
+        # Bind right-click for context menu on both canvas and root
         self.canvas.bind("<Button-3>", self.show_context_menu)
+        self.root.bind("<Button-3>", self.show_context_menu)
 
         # Context menu
         self.menu = tk.Menu(root, tearoff=0)
@@ -88,6 +89,7 @@ class TickerTape:
         """Update window geometry based on dock position."""
         y_pos = 0 if self.dock_position == 'top' else self.screen_height - self.window_height
         self.root.geometry(f"{self.screen_width}x{self.window_height}+0+{y_pos}")
+        self.root.update_idletasks()  # Ensure geometry update is applied
 
     def set_dock_position(self, position):
         """Set docking position and update geometry."""
@@ -214,7 +216,10 @@ class TickerTape:
 
     def show_context_menu(self, event):
         """Show right-click context menu."""
-        self.menu.post(event.x_root, event.y_root)
+        try:
+            self.menu.post(event.x_root, event.y_root)
+        except Exception as e:
+            print(f"Error displaying context menu: {e}")  # Debug output
 
     def add_ticker(self):
         """Add a new ticker symbol."""

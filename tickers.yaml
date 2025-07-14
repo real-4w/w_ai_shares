@@ -1,4 +1,4 @@
-dock_position: bottom
+dock_position: top
 tickers:
 - ^GSPC
 - ^AXJO
