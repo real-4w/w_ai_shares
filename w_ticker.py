@@ -5,6 +5,9 @@ import yaml
 import os
 import threading
 import time
+import win32api
+import win32con
+import win32gui
 
 class TickerTape:
     def __init__(self, root):
@@ -14,6 +17,8 @@ class TickerTape:
         self.screen_width = self.root.winfo_screenwidth()
         self.screen_height = self.root.winfo_screenheight()
         self.window_height = 30  # Single-line height
+        # Estimate taskbar height (Windows 11 default is ~48 pixels)
+        self.taskbar_height = self.get_taskbar_height() or 48
         # Initialize docking position (default to top)
         self.dock_position = 'top'
         self.yaml_file = 'tickers.yaml'
@@ -22,6 +27,9 @@ class TickerTape:
         self.root.attributes('-topmost', True)  # Keep on top
         self.root.overrideredirect(True)  # Remove window borders
         self.root.configure(bg='black')
+
+        # Make window click-through
+        self.make_click_through()
 
         # Ticker symbols (default indices)
         self.tickers = [
@@ -65,6 +73,23 @@ class TickerTape:
         self.fetch_thread.start()
         self.animate()
 
+    def get_taskbar_height(self):
+        """Get the height of the Windows taskbar."""
+        try:
+            monitor_info = win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0)))
+            work_area = monitor_info['Work']
+            full_area = monitor_info['Monitor']
+            return full_area[3] - work_area[3]  # Bottom of monitor - bottom of work area
+        except Exception:
+            return None  # Fallback to default if query fails
+
+    def make_click_through(self):
+        """Make the window click-through to allow taskbar interaction."""
+        hwnd = self.root.winfo_id()
+        ex_style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+        ex_style |= win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
+        win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, ex_style)
+
     def load_config(self):
         """Load tickers and dock position from YAML file."""
         if os.path.exists(self.yaml_file):
@@ -87,7 +112,10 @@ class TickerTape:
 
     def update_geometry(self):
         """Update window geometry based on dock position."""
-        y_pos = 0 if self.dock_position == 'top' else self.screen_height - self.window_height
+        if self.dock_position == 'top':
+            y_pos = 0
+        else:
+            y_pos = self.screen_height - self.window_height - self.taskbar_height
         self.root.geometry(f"{self.screen_width}x{self.window_height}+0+{y_pos}")
         self.root.update_idletasks()  # Ensure geometry update is applied
 
