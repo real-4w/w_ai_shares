@@ -62,16 +62,16 @@ class TickerTape:
         self.menu.add_command(label="Exit", command=self.exit_app)
 
         # Animation variables
-        self.ticker_data = []
+        self.ticker_data = [(symbol, None, None) for symbol in self.tickers]  # Initialize with None
         self.labels = []
         self.total_width = 0
         self.x_pos = self.screen_width  # Start off-screen
         self.running = True
 
-        # Show initialising message
-        self.show_initialising_message()
+        # Show initialising message and start animation
+        self.update_labels()
 
-        # Start data fetching and animation
+        # Start data fetching
         self.fetch_thread = threading.Thread(target=self.fetch_data, daemon=True)
         self.fetch_thread.start()
         self.animate()
@@ -88,39 +88,51 @@ class TickerTape:
 
     def make_click_through(self):
         """Make the window click-through to allow taskbar interaction."""
-        hwnd = self.root.winfo_id()
-        ex_style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
-        ex_style |= win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
-        win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, ex_style)
+        try:
+            hwnd = self.root.winfo_id()
+            ex_style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+            ex_style |= win32con.WS_EX_LAYERED | win32con.WS_EX_TRANSPARENT
+            win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, ex_style)
+        except Exception as e:
+            print(f"Error setting click-through: {e}")
 
     def load_config(self):
         """Load tickers and dock position from YAML file."""
         if os.path.exists(self.yaml_file):
-            with open(self.yaml_file, 'r') as file:
-                data = yaml.safe_load(file)
-                if data:
-                    if 'tickers' in data:
-                        self.tickers = data['tickers']
-                    if 'dock_position' in data:
-                        self.dock_position = data['dock_position']
-                        self.update_geometry()
+            try:
+                with open(self.yaml_file, 'r') as file:
+                    data = yaml.safe_load(file)
+                    if data:
+                        if 'tickers' in data:
+                            self.tickers = data['tickers']
+                        if 'dock_position' in data:
+                            self.dock_position = data['dock_position']
+                            self.update_geometry()
+            except Exception as e:
+                print(f"Error loading config: {e}")
 
     def save_config(self):
         """Save tickers and dock position to YAML file."""
-        with open(self.yaml_file, 'w') as file:
-            yaml.dump({
-                'tickers': self.tickers,
-                'dock_position': self.dock_position
-            }, file)
+        try:
+            with open(self.yaml_file, 'w') as file:
+                yaml.dump({
+                    'tickers': self.tickers,
+                    'dock_position': self.dock_position
+                }, file)
+        except Exception as e:
+            print(f"Error saving config: {e}")
 
     def update_geometry(self):
         """Update window geometry based on dock position."""
-        if self.dock_position == 'top':
-            y_pos = 0
-        else:
-            y_pos = self.screen_height - self.window_height - self.taskbar_height
-        self.root.geometry(f"{self.screen_width}x{self.window_height}+0+{y_pos}")
-        self.root.update_idletasks()  # Ensure geometry update is applied
+        try:
+            if self.dock_position == 'top':
+                y_pos = 0
+            else:
+                y_pos = self.screen_height - self.window_height - self.taskbar_height
+            self.root.geometry(f"{self.screen_width}x{self.window_height}+0+{y_pos}")
+            self.root.update_idletasks()  # Ensure geometry update is applied
+        except Exception as e:
+            print(f"Error updating geometry: {e}")
 
     def set_dock_position(self, position):
         """Set docking position and update geometry."""
@@ -129,11 +141,6 @@ class TickerTape:
             self.update_geometry()
             self.save_config()
             messagebox.showinfo("Success", f"Ticker tape docked to {position} of screen.")
-
-    def show_initialising_message(self):
-        """Display an initialising message until data is fetched."""
-        self.ticker_data = [(symbol, None, None) for symbol in self.tickers]
-        self.update_labels()
 
     def fetch_data(self):
         """Fetch stock data periodically."""
@@ -149,7 +156,8 @@ class TickerTape:
                     ticker_data.append((symbol, price, change))
                 else:
                     ticker_data.append((symbol, None, None))
-            except Exception:
+            except Exception as e:
+                print(f"Error fetching data for {symbol}: {e}")
                 ticker_data.append((symbol, None, None))
         self.ticker_data = ticker_data
         self.update_labels()
@@ -167,7 +175,8 @@ class TickerTape:
                         ticker_data.append((symbol, price, change))
                     else:
                         ticker_data.append((symbol, None, None))
-                except Exception:
+                except Exception as e:
+                    print(f"Error fetching data for {symbol}: {e}")
                     ticker_data.append((symbol, None, None))
             self.ticker_data = ticker_data
             self.update_labels()
@@ -175,129 +184,159 @@ class TickerTape:
 
     def update_labels(self):
         """Update or create labels for ticker data."""
-        # Clear existing labels
-        for label in self.labels:
-            self.canvas.delete(label)
-        self.labels = []
+        try:
+            # Clear existing labels
+            for label in self.labels:
+                self.canvas.delete(label)
+            self.labels = []
 
-        x_offset = 0
-        for symbol, price, change in self.ticker_data:
-            if price is None or change is None:
-                text = f"{symbol}: Initialising..." if self.ticker_data == [(s, None, None) for s in self.tickers] else f"{symbol}: No data"
-                fg = "white"
-            else:
-                text = f"{symbol}: ${price:.2f} ({change:+.2f}%)"
-                fg = "green" if change >= 0 else "red"
+            x_offset = 0
+            for symbol, price, change in self.ticker_data:
+                if price is None or change is None:
+                    text = f"{symbol}: Initialising..." if self.ticker_data == [(s, None, None) for s in self.tickers] else f"{symbol}: No data"
+                    fg = "white"
+                else:
+                    text = f"{symbol}: ${price:.2f} ({change:+.2f}%)"
+                    fg = "green" if change >= 0 else "red"
 
-            # Create label on canvas
-            label_id = self.canvas.create_text(
-                x_offset,
-                self.window_height // 2,  # Center vertically
-                text=text,
-                font=("Arial", 12),
-                fill=fg,
-                anchor="w"
-            )
-            self.labels.append(label_id)
+                # Create label on canvas
+                label_id = self.canvas.create_text(
+                    x_offset,
+                    self.window_height // 2,  # Center vertically
+                    text=text,
+                    font=("Arial", 12),
+                    fill=fg,
+                    anchor="w"
+                )
+                self.labels.append(label_id)
 
-            # Calculate width
-            bbox = self.canvas.bbox(label_id)
-            width = bbox[2] - bbox[0]
-            x_offset += width + 40  # Space between tickers
+                # Calculate width
+                bbox = self.canvas.bbox(label_id)
+                if bbox:
+                    width = bbox[2] - bbox[0]
+                    x_offset += width + 40  # Space between tickers
 
-            # Add separator
-            sep_id = self.canvas.create_text(
-                x_offset,
-                self.window_height // 2,
-                text="|",
-                font=("Arial", 12),
-                fill="white",
-                anchor="w"
-            )
-            self.labels.append(sep_id)
-            bbox = self.canvas.bbox(sep_id)
-            x_offset += (bbox[2] - bbox[0]) + 40
+                    # Add separator
+                    sep_id = self.canvas.create_text(
+                        x_offset,
+                        self.window_height // 2,
+                        text="|",
+                        font=("Arial", 12),
+                        fill="white",
+                        anchor="w"
+                    )
+                    self.labels.append(sep_id)
+                    bbox = self.canvas.bbox(sep_id)
+                    if bbox:
+                        x_offset += (bbox[2] - bbox[0]) + 40
+                    else:
+                        x_offset += 40  # Fallback spacing
+                else:
+                    x_offset += 100  # Fallback spacing if bbox fails
 
-        self.total_width = x_offset
+            self.total_width = x_offset
+        except Exception as e:
+            print(f"Error updating labels: {e}")
 
     def animate(self):
         """Animate scrolling labels."""
-        if not self.ticker_data:
-            self.root.after(100, self.animate)
-            return
+        try:
+            if not self.ticker_data:
+                self.update_labels()  # Ensure something is displayed
+                self.root.after(100, self.animate)
+                return
 
-        self.x_pos -= 2  # Scroll speed
-        if self.x_pos < -self.total_width:
-            self.x_pos = self.screen_width  # Reset to screen width
+            self.x_pos -= 2  # Scroll speed
+            if self.x_pos < -self.total_width:
+                self.x_pos = self.screen_width  # Reset to screen width
 
-        # Move all labels
-        self.canvas.delete("all")
-        self.labels = []
-        x_offset = self.x_pos
-        for symbol, price, change in self.ticker_data:
-            if price is None or change is None:
-                text = f"{symbol}: Initialising..." if self.ticker_data == [(s, None, None) for s in self.tickers] else f"{symbol}: No data"
-                fg = "white"
-            else:
-                text = f"{symbol}: ${price:.2f} ({change:+.2f}%)"
-                fg = "green" if change >= 0 else "red"
+            # Move all labels
+            self.canvas.delete("all")
+            self.labels = []
+            x_offset = self.x_pos
+            for symbol, price, change in self.ticker_data:
+                if price is None or change is None:
+                    text = f"{symbol}: Initialising..." if self.ticker_data == [(s, None, None) for s in self.tickers] else f"{symbol}: No data"
+                    fg = "white"
+                else:
+                    text = f"{symbol}: ${price:.2f} ({change:+.2f}%)"
+                    fg = "green" if change >= 0 else "red"
 
-            label_id = self.canvas.create_text(
-                x_offset,
-                self.window_height // 2,
-                text=text,
-                font=("Arial", 12),
-                fill=fg,
-                anchor="w"
-            )
-            self.labels.append(label_id)
-            bbox = self.canvas.bbox(label_id)
-            x_offset += (bbox[2] - bbox[0]) + 40
+                label_id = self.canvas.create_text(
+                    x_offset,
+                    self.window_height // 2,
+                    text=text,
+                    font=("Arial", 12),
+                    fill=fg,
+                    anchor="w"
+                )
+                self.labels.append(label_id)
+                bbox = self.canvas.bbox(label_id)
+                if bbox:
+                    x_offset += (bbox[2] - bbox[0]) + 40
+                else:
+                    x_offset += 100  # Fallback spacing
 
-            sep_id = self.canvas.create_text(
-                x_offset,
-                self.window_height // 2,
-                text="|",
-                font=("Arial", 12),
-                fill="white",
-                anchor="w"
-            )
-            self.labels.append(sep_id)
-            bbox = self.canvas.bbox(sep_id)
-            x_offset += (bbox[2] - bbox[0]) + 40
+                sep_id = self.canvas.create_text(
+                    x_offset,
+                    self.window_height // 2,
+                    text="|",
+                    font=("Arial", 12),
+                    fill="white",
+                    anchor="w"
+                )
+                self.labels.append(sep_id)
+                bbox = self.canvas.bbox(sep_id)
+                if bbox:
+                    x_offset += (bbox[2] - bbox[0]) + 40
+                else:
+                    x_offset += 40  # Fallback spacing
 
-        self.root.after(20, self.animate)  # Update every 20ms
+            self.root.after(20, self.animate)  # Update every 20ms
+        except Exception as e:
+            print(f"Error in animation: {e}")
+            self.root.after(100, self.animate)  # Retry animation
 
     def show_context_menu(self, event):
         """Show right-click context menu."""
         try:
             self.menu.post(event.x_root, event.y_root)
         except Exception as e:
-            print(f"Error displaying context menu: {e}")  # Debug output
+            print(f"Error displaying context menu: {e}")
 
     def add_ticker(self):
         """Add a new ticker symbol."""
-        symbol = simpledialog.askstring("Add Ticker", "Enter ticker symbol (e.g., AAPL):", parent=self.root)
-        if symbol:
-            symbol = symbol.strip().upper()
-            if symbol not in self.tickers:
-                self.tickers.append(symbol)
-                self.save_config()
-                messagebox.showinfo("Success", f"Added {symbol} to ticker tape.")
-            else:
-                messagebox.showwarning("Warning", f"{symbol} is already in the ticker tape.")
+        try:
+            symbol = simpledialog.askstring("Add Ticker", "Enter ticker symbol (e.g., AAPL):", parent=self.root)
+            if symbol:
+                symbol = symbol.strip().upper()
+                if symbol not in self.tickers:
+                    self.tickers.append(symbol)
+                    self.ticker_data.append((symbol, None, None))  # Add to display immediately
+                    self.update_labels()
+                    self.save_config()
+                    messagebox.showinfo("Success", f"Added {symbol} to ticker tape.")
+                else:
+                    messagebox.showwarning("Warning", f"{symbol} is already in the ticker tape.")
+        except Exception as e:
+            print(f"Error adding ticker: {e}")
 
     def remove_ticker(self):
         """Remove a ticker symbol."""
-        symbol = simpledialog.askstring("Remove Ticker", "Enter ticker symbol to remove:", parent=self.root)
-        if symbol:
-            symbol = symbol.strip().upper()
-            if symbol in self.tickers:
-                self.tickers.remove(symbol)
-                self.save_config()
-                messagebox.showinfo("Success", f"Removed {symbol} from ticker tape.")
-            else:
-                messagebox.showwarning("Warning", f"{symbol} not found in ticker tape.")
+        try:
+            symbol = simpledialog.askstring("Remove Ticker", "Enter ticker symbol to remove:", parent=self.root)
+            if symbol:
+                symbol = symbol.strip().upper()
+                if symbol in self.tickers:
+                    self.tickers.remove(symbol)
+                    self.ticker_data = [(s, p, c) for s, p, c in self.ticker_data if s != symbol]
+                    self.update_labels()
+                    self.save_config()
+                    messagebox.showinfo("Success", f"Removed {symbol} from ticker tape.")
+                else:
+                    messagebox.showwarning("Warning", f"{symbol} not found in ticker tape.")
+        except Exception as e:
+            print(f"Error removing ticker: {e}")
 
     def exit_app(self):
         """Exit the application."""
@@ -305,6 +344,9 @@ class TickerTape:
         self.root.destroy()
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = TickerTape(root)
-    root.mainloop()
+    try:
+        root = tk.Tk()
+        app = TickerTape(root)
+        root.mainloop()
+    except Exception as e:
+        print(f"Error starting application: {e}")
