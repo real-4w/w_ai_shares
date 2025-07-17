@@ -39,17 +39,20 @@ class TickerTape:
         ]
         self.load_config()  # Load tickers after setting default
 
-        # Canvas for scrolling labels
-        self.canvas = tk.Canvas(
+        # Label for scrolling text
+        self.label = tk.Label(
             root,
-            bg='black',
-            highlightthickness=0,
-            height=self.window_height
+            text="",
+            font=("Arial", 12),
+            fg="white",
+            bg="black",
+            anchor="w",
+            justify="left"
         )
-        self.canvas.pack(fill='both', expand=True)
+        self.label.pack(fill='both', expand=True)
 
-        # Bind right-click for context menu on both canvas and root
-        self.canvas.bind("<Button-3>", self.show_context_menu)
+        # Bind right-click for context menu on both label and root
+        self.label.bind("<Button-3>", self.show_context_menu)
         self.root.bind("<Button-3>", self.show_context_menu)
 
         # Context menu
@@ -62,20 +65,19 @@ class TickerTape:
         self.menu.add_command(label="Exit", command=self.exit_app)
 
         # Animation variables
-        self.ticker_data = [(symbol, None, None) for symbol in self.tickers]  # Initialize with None
-        self.labels = []
-        self.total_width = 0
-        self.x_pos = self.screen_width  # Start off-screen
+        self.ticker_data = [(symbol, None, None) for symbol in self.tickers]
+        self.text = "  |  ".join(f"{symbol}: Initialising..." for symbol in self.tickers)
+        self.x_pos = self.screen_width
         self.running = True
 
-        # Initialize display with "Initialising..." message
-        self.display_initial_message()
-        self.canvas.update()  # Force immediate render
+        # Initialize display
+        self.update_label_text()
+        self.root.update()  # Force immediate render
 
         # Start data fetching and animation
         self.fetch_thread = threading.Thread(target=self.fetch_data, daemon=True)
         self.fetch_thread.start()
-        self.root.after(20, self.animate)  # Start animation loop
+        self.root.after(20, self.animate)
 
     def get_taskbar_height(self):
         """Get the height of the Windows taskbar."""
@@ -83,7 +85,7 @@ class TickerTape:
             monitor_info = win32api.GetMonitorInfo(win32api.MonitorFromPoint((0, 0)))
             work_area = monitor_info['Work']
             full_area = monitor_info['Monitor']
-            return full_area[3] - work_area[3]  # Bottom of monitor - bottom of work area
+            return full_area[3] - work_area[3]
         except Exception as e:
             print(f"Error getting taskbar height: {e}")
             return None
@@ -108,6 +110,7 @@ class TickerTape:
                         if 'tickers' in data:
                             self.tickers = data['tickers']
                             self.ticker_data = [(symbol, None, None) for symbol in self.tickers]
+                            self.text = "  |  ".join(f"{symbol}: Initialising..." for symbol in self.tickers)
                         if 'dock_position' in data:
                             self.dock_position = data['dock_position']
                             self.update_geometry()
@@ -133,7 +136,7 @@ class TickerTape:
             else:
                 y_pos = self.screen_height - self.window_height - self.taskbar_height
             self.root.geometry(f"{self.screen_width}x{self.window_height}+0+{y_pos}")
-            self.root.update_idletasks()  # Ensure geometry update is applied
+            self.root.update_idletasks()
         except Exception as e:
             print(f"Error updating geometry: {e}")
 
@@ -148,45 +151,10 @@ class TickerTape:
         except Exception as e:
             print(f"Error setting dock position: {e}")
 
-    def display_initial_message(self):
-        """Display initial 'Initialising...' message."""
-        try:
-            self.canvas.delete("all")
-            self.labels = []
-            x_offset = self.x_pos
-            for symbol, _, _ in self.ticker_data:
-                label_id = self.canvas.create_text(
-                    x_offset,
-                    self.window_height // 2,
-                    text=f"{symbol}: Initialising...",
-                    font=("Arial", 12),
-                    fill="white",
-                    anchor="w"
-                )
-                self.labels.append(label_id)
-                bbox = self.canvas.bbox(label_id)
-                x_offset += (bbox[2] - bbox[0]) + 40 if bbox else 100
-
-                sep_id = self.canvas.create_text(
-                    x_offset,
-                    self.window_height // 2,
-                    text="|",
-                    font=("Arial", 12),
-                    fill="white",
-                    anchor="w"
-                )
-                self.labels.append(sep_id)
-                bbox = self.canvas.bbox(sep_id)
-                x_offset += (bbox[2] - bbox[0]) + 40 if bbox else 40
-
-            self.total_width = x_offset
-        except Exception as e:
-            print(f"Error displaying initial message: {e}")
-
     def fetch_data(self):
         """Fetch stock data periodically."""
         try:
-            # Initial fetch without delay
+            # Initial fetch
             ticker_data = []
             for symbol in self.tickers:
                 try:
@@ -202,7 +170,7 @@ class TickerTape:
                     print(f"Error fetching data for {symbol}: {e}")
                     ticker_data.append((symbol, None, None))
             self.ticker_data = ticker_data
-            self.root.after(0, self.update_labels)  # Schedule update on main thread
+            self.root.after(0, self.update_label_text)
 
             # Periodic updates
             while self.running:
@@ -221,65 +189,43 @@ class TickerTape:
                         print(f"Error fetching data for {symbol}: {e}")
                         ticker_data.append((symbol, None, None))
                 self.ticker_data = ticker_data
-                self.root.after(0, self.update_labels)  # Schedule update on main thread
-                time.sleep(60)  # Update every minute
+                self.root.after(0, self.update_label_text)
+                time.sleep(60)
         except Exception as e:
             print(f"Error in fetch_data: {e}")
 
-    def update_labels(self):
-        """Update or create labels for ticker data."""
+    def update_label_text(self):
+        """Update the label text with current ticker data."""
         try:
-            self.canvas.delete("all")
-            self.labels = []
-            x_offset = self.x_pos
+            text_parts = []
+            fg = "white"
             for symbol, price, change in self.ticker_data:
                 if price is None or change is None:
                     text = f"{symbol}: Initialising..." if all(p is None and c is None for s, p, c in self.ticker_data) else f"{symbol}: No data"
-                    fg = "white"
                 else:
                     text = f"{symbol}: ${price:.2f} ({change:+.2f}%)"
                     fg = "green" if change >= 0 else "red"
-
-                label_id = self.canvas.create_text(
-                    x_offset,
-                    self.window_height // 2,
-                    text=text,
-                    font=("Arial", 12),
-                    fill=fg,
-                    anchor="w"
-                )
-                self.labels.append(label_id)
-                bbox = self.canvas.bbox(label_id)
-                x_offset += (bbox[2] - bbox[0]) + 40 if bbox else 100
-
-                sep_id = self.canvas.create_text(
-                    x_offset,
-                    self.window_height // 2,
-                    text="|",
-                    font=("Arial", 12),
-                    fill="white",
-                    anchor="w"
-                )
-                self.labels.append(sep_id)
-                bbox = self.canvas.bbox(sep_id)
-                x_offset += (bbox[2] - bbox[0]) + 40 if bbox else 40
-
-            self.total_width = x_offset
-            self.canvas.update()  # Force canvas update
+                text_parts.append(text)
+            self.text = "  |  ".join(text_parts)
+            self.label.config(text=self.text, fg=fg)
+            self.label.place(x=self.x_pos, y=0)
+            self.root.update()
         except Exception as e:
-            print(f"Error updating labels: {e}")
+            print(f"Error updating label text: {e}")
 
     def animate(self):
-        """Animate scrolling labels."""
+        """Animate scrolling label."""
         try:
             self.x_pos -= 2  # Scroll speed
-            if self.x_pos < -self.total_width:
-                self.x_pos = self.screen_width  # Reset to screen width
-            self.update_labels()  # Redraw labels at new position
-            self.root.after(20, self.animate)  # Continue animation
+            text_width = self.label.winfo_reqwidth()
+            if self.x_pos < -text_width:
+                self.x_pos = self.screen_width
+            self.label.place(x=self.x_pos, y=0)
+            self.root.update()
+            self.root.after(20, self.animate)
         except Exception as e:
             print(f"Error in animation: {e}")
-            self.root.after(100, self.animate)  # Retry animation
+            self.root.after(100, self.animate)
 
     def show_context_menu(self, event):
         """Show right-click context menu."""
@@ -297,7 +243,7 @@ class TickerTape:
                 if symbol not in self.tickers:
                     self.tickers.append(symbol)
                     self.ticker_data.append((symbol, None, None))
-                    self.update_labels()
+                    self.update_label_text()
                     self.save_config()
                     messagebox.showinfo("Success", f"Added {symbol} to ticker tape.")
                 else:
@@ -314,7 +260,7 @@ class TickerTape:
                 if symbol in self.tickers:
                     self.tickers.remove(symbol)
                     self.ticker_data = [(s, p, c) for s, p, c in self.ticker_data if s != symbol]
-                    self.update_labels()
+                    self.update_label_text()
                     self.save_config()
                     messagebox.showinfo("Success", f"Removed {symbol} from ticker tape.")
                 else:
