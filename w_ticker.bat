@@ -1,1 +1,1 @@
-pythonw "C:\Python Scripts\w_ai_shares\w_ticker.py"
+pythonw "C:\Python Scripts\office_hack\w_dowload_tidy.py"
