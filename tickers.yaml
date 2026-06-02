@@ -16,7 +16,6 @@ tickers:
 - FBU.NZ
 - FPH.NZ
 - FSF.NZ
-- GMT.NZ
 - GNE.NZ
 - GTK.NZ
 - HGH.NZ
@@ -38,8 +37,6 @@ tickers:
 - PFI.NZ
 - PGW.NZ
 - POT.NZ
-- RAK.NZ
-- RBD.NZ
 - RYM.NZ
 - SAN.NZ
 - SCL.NZ
@@ -48,7 +45,6 @@ tickers:
 - SML.NZ
 - SPG.NZ
 - SPK.NZ
-- SPY.NZ
 - SUM.NZ
 - TAH.NZ
 - TGG.NZ
