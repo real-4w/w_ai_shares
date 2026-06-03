@@ -1,4 +1,3 @@
-dock_position: top
 tickers:
 - ^GSPC
 - ^AXJO
@@ -58,3 +57,4 @@ tickers:
 - VSL.NZ
 - WHS.NZ
 - AAPL
+dock_position: top
